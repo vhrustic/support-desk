@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/format";
 import type { ActionState } from "@/types";
 
@@ -25,14 +25,13 @@ export async function signUpAction(
   if (!password) errors.password = "Password is required.";
   if (Object.keys(errors).length) return { errors };
 
-  const supabase = await createClient();
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  const admin = await createAdminClient();
+  const { data: authData, error: authError } = await admin.auth.admin.createUser({
     email,
     password,
-    options: {
-      data: {
-        full_name: fullName,
-      },
+    email_confirm: true,
+    user_metadata: {
+      full_name: fullName,
     },
   });
 
@@ -42,7 +41,7 @@ export async function signUpAction(
 
   const baseSlug = slugify(companyName) || "workspace";
   const slug = `${baseSlug}-${crypto.randomUUID().slice(0, 8)}`;
-  const { data: tenant, error: tenantError } = await supabase
+  const { data: tenant, error: tenantError } = await admin
     .from("tenants")
     .insert({ name: companyName, slug })
     .select("id")
@@ -52,7 +51,7 @@ export async function signUpAction(
     return { message: tenantError?.message || "Could not create workspace." };
   }
 
-  const { error: profileError } = await supabase.from("profiles").insert({
+  const { error: profileError } = await admin.from("profiles").insert({
     id: authData.user.id,
     tenant_id: tenant.id,
     full_name: fullName,
@@ -62,6 +61,19 @@ export async function signUpAction(
 
   if (profileError) {
     return { message: profileError.message };
+  }
+
+  const supabase = await createClient();
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (signInError) {
+    return {
+      ok: true,
+      message: "Workspace created. Sign in with your new account.",
+    };
   }
 
   redirect("/dashboard");

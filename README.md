@@ -117,12 +117,14 @@ Create `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_sb_publishable_key
 SUPABASE_SECRET_KEY=your_sb_secret_key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
 Notes:
 
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is safe to expose in the browser when RLS is correctly enabled.
 - `SUPABASE_SECRET_KEY` must stay server-only. It bypasses RLS and is used only for Supabase Admin Auth operations and seeding.
+- `NEXT_PUBLIC_SITE_URL` is used as a fallback for auth redirect URLs. In production, set it to your Vercel URL.
 
 ### 5. Seed Demo Data
 
@@ -221,6 +223,7 @@ Set these Vercel environment variables:
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_sb_publishable_key
 SUPABASE_SECRET_KEY=your_sb_secret_key
+NEXT_PUBLIC_SITE_URL=https://your-vercel-app.vercel.app
 ```
 
 Before testing the deployed app:
@@ -229,6 +232,7 @@ Before testing the deployed app:
 2. Register the custom access token hook.
 3. Seed demo data if desired.
 4. Add the Vercel URL to the top of this README.
+5. Add your Vercel URL to Supabase Auth redirect URLs so invite links can return to `/auth/callback`.
 
 ## Security Notes
 

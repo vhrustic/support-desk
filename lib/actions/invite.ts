@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import type { ActionState } from "@/types";
@@ -25,11 +26,19 @@ export async function inviteUserAction(
   if (!profile.tenant_id) return { message: "Your profile is missing a tenant." };
 
   const admin = await createAdminClient();
+  const headerStore = await headers();
+  const origin =
+    headerStore.get("origin") ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+  const redirectTo = origin ? `${origin}/auth/callback` : undefined;
+
   const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
     data: {
       tenant_id: profile.tenant_id,
       role,
     },
+    redirectTo,
   });
 
   if (inviteError) return { message: inviteError.message };
