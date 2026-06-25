@@ -1,6 +1,6 @@
 # SupportDesk
 
-**Live demo:** TODO: add Vercel URL here
+**Live demo:** [https://support-desk-rose.vercel.app/](https://support-desk-rose.vercel.app/)
 
 SupportDesk is a multi-tenant SaaS customer support ticket system built with **Next.js 16**, **Supabase Auth/Postgres**, **Row Level Security**, **Server Actions**, **TypeScript**, and **Tailwind CSS**.
 
