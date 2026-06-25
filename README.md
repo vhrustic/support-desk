@@ -117,12 +117,14 @@ Create `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_sb_publishable_key
 SUPABASE_SECRET_KEY=your_sb_secret_key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
 Notes:
 
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is safe to expose in the browser when RLS is correctly enabled.
 - `SUPABASE_SECRET_KEY` must stay server-only. It bypasses RLS and is used only for Supabase Admin Auth operations and seeding.
+- `NEXT_PUBLIC_SITE_URL` is used as a fallback for auth redirect URLs. In production, set it to your Vercel URL.
 
 ### 5. Seed Demo Data
 
@@ -221,6 +223,7 @@ Set these Vercel environment variables:
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_sb_publishable_key
 SUPABASE_SECRET_KEY=your_sb_secret_key
+NEXT_PUBLIC_SITE_URL=https://your-vercel-app.vercel.app
 ```
 
 Before testing the deployed app:
@@ -229,6 +232,40 @@ Before testing the deployed app:
 2. Register the custom access token hook.
 3. Seed demo data if desired.
 4. Add the Vercel URL to the top of this README.
+5. Add your Vercel URL to Supabase Auth redirect URLs so invite links can return to `/auth/callback`.
+
+## Error Tracking
+
+Frontend errors are reported to [Better Stack](https://betterstack.com/docs/errors/start/)
+via its JavaScript tag, rendered by `components/BetterStack.tsx` and mounted at
+the top of `<body>` in the root layout.
+
+No environment variables and no npm dependencies are required. The application
+token is inlined in the component — it is a public, write-only ingest key that
+ships to every visitor in the page source by design, like a Google Analytics ID.
+
+The `environment` reported to Better Stack is derived from Vercel's `VERCEL_ENV`.
+The component renders on the server, so this is read directly without needing a
+`NEXT_PUBLIC_` variable. Preview deploys report as `preview` and local builds as
+`development`, keeping them out of the production error feed.
+
+### Why a plain `<script>` and not `next/script`
+
+Two reasons, both deliberate:
+
+1. An inline script runs during HTML parse, before any Next.js runtime chunk, so
+   early errors are still captured. `next/script`'s `beforeInteractive` only
+   appends the tag once Next's own loader has booted.
+2. `next/script` requires an `id` on inline scripts and copies it onto the
+   injected element. A `<script id="betterstack">` makes `window.betterstack`
+   resolve to that DOM element through named element access, so the snippet's
+   `b[t]=b[t]||function(){...}` keeps the element instead of installing the
+   stub, and `betterstack('init', ...)` throws "betterstack is not a function".
+   The failure is quiet: `b.js` still downloads, so the tag looks healthy while
+   nothing is ever initialized.
+
+To verify after deploying, open the site, trigger an error in the console, and
+confirm a `POST` to `*.betterstackdata.com/api/<id>/envelope/` returns 200.
 
 ## Security Notes
 
